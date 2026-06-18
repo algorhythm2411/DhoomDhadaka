@@ -1,27 +1,66 @@
-import React, { useState } from 'react';
-import { FaFire, FaTrophy, FaGamepad, FaUser, FaPlay } from 'react-icons/fa';
-import PuzzlePlayer from './components/PuzzlePlayer'; // Import matching the newly created component
+import React, { useState, useEffect } from 'react';
+import { FaFire, FaTrophy, FaGamepad, FaUser, FaPlay, FaSignOutAlt } from 'react-icons/fa';
+import PuzzlePlayer from './components/PuzzlePlayer';
+import Auth from './components/Auth';
+import API from './services/api';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [isPlaying, setIsPlaying] = useState(false);
-  
+  const [leaderboard, setLeaderboard] = useState([]);
   const [userStats, setUserStats] = useState({
-    username: "LogicWarrior",
-    eloRating: 1450,
-    rankTier: "Silver",
-    currentStreak: 5
+    username: "Player",
+    eloRating: 1000,
+    rankTier: "Bronze",
+    currentStreak: 0
   });
 
-  const leaderboardData = [
-    { rank: 1, username: "DILR_Deity", elo: 2800, tier: "Grandmaster" },
-    { rank: 2, username: "MatrixMaster", elo: 2450, tier: "Diamond" },
-    { rank: 3, username: "QuantPro", elo: 2100, tier: "Gold" },
-    { rank: 4, username: "LogicWarrior", elo: 1450, tier: "Silver" }
-  ];
+  // Fetch data directly from live backend
+  const fetchDashboardData = async () => {
+    if (!isAuthenticated) return;
+    try {
+      // 1. Live Leaderboard fetch karo
+      const lbResponse = await API.get('/game/leaderboard');
+      if (lbResponse.data?.leaderboard) {
+        setLeaderboard(lbResponse.data.leaderboard);
+      }
+      
+      // 2. Logged in user ke fresh stats localstorage ya state me local saved data se sync karo
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        // Tip: Real-time update ke liye future me yahan /auth/me profile endpoint bna kar hit kar skte hain
+        setUserStats({
+          username: parsed.username || "Agent",
+          eloRating: parsed.eloRating || 1000,
+          rankTier: parsed.rankTier || "Bronze",
+          currentStreak: parsed.currentStreak || 0
+        });
+      }
+    } catch (error) {
+      console.error("Dashboard synchronization failed:", error.message);
+    }
+  };
 
-  // Route Handler Condition
+  useEffect(() => {
+    fetchDashboardData();
+  }, [isAuthenticated]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    setIsAuthenticated(false);
+    setIsPlaying(false);
+  };
+
+  // Auth Gate
+  if (!isAuthenticated) {
+    return <Auth onAuthSuccess={() => setIsAuthenticated(true)} />;
+  }
+
+  // Puzzle Player Gate
   if (isPlaying) {
-    return <PuzzlePlayer onBack={() => setIsPlaying(false)} />;
+    // Apne Google Drive ki real FileId yahan testing ke samay pass kar sakte ho
+    return <PuzzlePlayer onBack={() => { setIsPlaying(false); fetchDashboardData(); }} />;
   }
 
   return (
@@ -32,15 +71,23 @@ function App() {
           <FaGamepad className="text-2xl" />
           <span>DILR<span className="text-gameNeon">ARENA</span></span>
         </div>
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-1 text-orange-500 font-bold bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
+        
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1 text-orange-500 font-bold bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20 text-sm">
             <FaFire />
             <span>{userStats.currentStreak} Days</span>
           </div>
-          <div className="flex items-center space-x-2 bg-slate-700/50 px-4 py-1.5 rounded-lg border border-slate-600">
+          <div className="flex items-center space-x-2 bg-slate-800/80 px-4 py-1.5 rounded-lg border border-slate-700 text-sm">
             <FaUser className="text-slate-400" />
-            <span className="font-medium text-sm">{userStats.username} ({userStats.eloRating} Elo)</span>
+            <span className="font-semibold text-slate-200">{userStats.username} ({userStats.eloRating} Elo)</span>
           </div>
+          <button 
+            onClick={handleLogout}
+            className="text-slate-500 hover:text-red-400 p-2 rounded-lg transition"
+            title="Log Out"
+          >
+            <FaSignOutAlt />
+          </button>
         </div>
       </header>
 
@@ -49,13 +96,11 @@ function App() {
         
         {/* Left & Middle Column */}
         <div className="md:col-span-2 space-y-6">
-          {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-gameAccent to-indigo-900 rounded-2xl p-6 shadow-xl relative overflow-hidden">
             <div className="relative z-10">
               <h1 className="text-3xl font-extrabold mb-2">Welcome Back, {userStats.username}!</h1>
-              <p className="text-indigo-200 mb-4 max-w-md">Your current rank is <span className="text-white font-bold underline decoration-gameNeon">{userStats.rankTier}</span>. Ready to claim today's Rating Points?</p>
+              <p className="text-indigo-200 mb-4 max-w-md">Your current tier is <span className="text-white font-bold underline decoration-gameNeon">{userStats.rankTier}</span>. Ready to claim today's Rating Points?</p>
             </div>
-            <div className="absolute right-0 bottom-0 opacity-10 text-9xl font-black select-none pointer-events-none p-4">DILR</div>
           </div>
 
           {/* Daily Set Blitz Card */}
@@ -66,28 +111,16 @@ function App() {
               <p className="text-slate-400 text-sm">Everyone plays the same 15-minute set. Protect your streak!</p>
             </div>
             <button 
-              onClick={() => setIsPlaying(true)} // Toggles state to launch Puzzle Arena
+              onClick={() => setIsPlaying(true)}
               className="bg-gameNeon hover:bg-emerald-600 text-gameDark font-extrabold px-6 py-3 rounded-xl flex items-center space-x-2 transform active:scale-95 transition shadow-lg shadow-gameNeon/20"
             >
               <FaPlay />
               <span>PLAY</span>
             </button>
           </div>
-
-          {/* Time Attack Card Placeholder */}
-          <div className="bg-gameCard border border-slate-800 rounded-2xl p-6 shadow-md opacity-70">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded-md">PvP Mode</span>
-                <h2 className="text-xl font-bold mt-2 mb-1">Time-Attack Duel</h2>
-                <p className="text-slate-400 text-sm">Match head-to-head on a 10-minute set. Faster accurate solver wins.</p>
-              </div>
-              <span className="text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">LOCK</span>
-            </div>
-          </div>
         </div>
 
-        {/* Right Column: Leaderboard */}
+        {/* Right Column: Dynamic Leaderboard */}
         <div className="bg-gameCard border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col">
           <div className="flex items-center space-x-2 text-lg font-bold border-b border-slate-800 pb-3 mb-4">
             <FaTrophy className="text-yellow-500" />
@@ -95,29 +128,31 @@ function App() {
           </div>
 
           <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-            {leaderboardData.map((player) => (
-              <div 
-                key={player.rank} 
-                className={`flex items-center justify-between p-3 rounded-xl border ${
-                  player.username === userStats.username 
-                    ? 'bg-gameAccent/20 border-gameAccent' 
-                    : 'bg-slate-900/40 border-slate-800/60 hover:border-slate-700/60'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <span className={`w-6 text-center font-bold text-sm ${
-                    player.rank === 1 ? 'text-yellow-500' : player.rank === 2 ? 'text-slate-400' : player.rank === 3 ? 'text-amber-600' : 'text-slate-500'
-                  }`}>
-                    #{player.rank}
-                  </span>
-                  <div>
-                    <div className="font-semibold text-sm">{player.username}</div>
-                    <div className="text-xs text-slate-500">{player.tier}</div>
+            {leaderboard.length === 0 ? (
+              <p className="text-slate-500 text-xs text-center pt-8">No legends recorded yet. Be the first!</p>
+            ) : (
+              leaderboard.map((player, idx) => (
+                <div 
+                  key={player._id || idx} 
+                  className={`flex items-center justify-between p-3 rounded-xl border ${
+                    player.username === userStats.username 
+                      ? 'bg-gameAccent/20 border-gameAccent' 
+                      : 'bg-slate-900/40 border-slate-800/60 hover:border-slate-700/60'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="w-6 text-center font-black text-sm text-slate-500">
+                      #{idx + 1}
+                    </span>
+                    <div>
+                      <div className="font-semibold text-sm">{player.username}</div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wider">{player.rankTier}</div>
+                    </div>
                   </div>
+                  <div className="text-sm font-bold text-gameNeon">{player.eloRating} QP</div>
                 </div>
-                <div className="text-sm font-bold text-gameNeon">{player.elo} QP</div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
