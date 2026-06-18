@@ -3,7 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db.js');
 const authRoutes = require('./routes/authRoutes.js');
-const setRoutes = require('./routes/setRoutes.js'); // Naya import
+const setRoutes = require('./routes/setRoutes.js');
+const gameRoutes = require('./routes/gameRoutes.js'); // Naya import
 
 // Load environment variables
 dotenv.config();
@@ -19,7 +20,8 @@ app.use(express.json());
 
 // Routes Integration
 app.use('/api/auth', authRoutes);
-app.use('/api/sets', setRoutes); // Sets endpoints connect ho gaye
+app.use('/api/sets', setRoutes);
+app.use('/api/game', gameRoutes); // Game metrics aur leaderboard connect ho gaya
 
 // Basic Health Check Route
 app.get('/', (req, res) => {
