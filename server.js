@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db.js');
+const authRoutes = require('./routes/authRoutes.js'); // Naya import
 
 // Load environment variables
 dotenv.config();
@@ -13,7 +14,10 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // Allows us to parse JSON bodies
+app.use(express.json());
+
+// Routes Integration
+app.use('/api/auth', authRoutes); // Auth endpoints connect ho gaye
 
 // Basic Health Check Route
 app.get('/', (req, res) => {
