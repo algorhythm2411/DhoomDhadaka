@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { FaFire, FaTrophy, FaGamepad, FaUser, FaPlay } from 'react-icons/fa';
+import PuzzlePlayer from './components/PuzzlePlayer'; // Import matching the newly created component
 
 function App() {
-  // Dummy data frontend design validation ke liye
+  const [isPlaying, setIsPlaying] = useState(false);
+  
   const [userStats, setUserStats] = useState({
     username: "LogicWarrior",
     eloRating: 1450,
@@ -16,6 +18,11 @@ function App() {
     { rank: 3, username: "QuantPro", elo: 2100, tier: "Gold" },
     { rank: 4, username: "LogicWarrior", elo: 1450, tier: "Silver" }
   ];
+
+  // Route Handler Condition
+  if (isPlaying) {
+    return <PuzzlePlayer onBack={() => setIsPlaying(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gameDark text-slate-100 flex flex-col">
@@ -40,7 +47,7 @@ function App() {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Left & Middle Column: Game Modes */}
+        {/* Left & Middle Column */}
         <div className="md:col-span-2 space-y-6">
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-gameAccent to-indigo-900 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -56,9 +63,12 @@ function App() {
             <div>
               <span className="text-xs font-semibold uppercase tracking-wider bg-gameNeon/10 text-gameNeon px-2.5 py-1 rounded-md">Daily Quest</span>
               <h2 className="text-2xl font-bold mt-2 mb-1">The Daily Set Blitz</h2>
-              <p className="text-slate-400 text-sm">Everyone plays the same 15-minute set. Protect your streak! [cite: 16, 17]</p>
+              <p className="text-slate-400 text-sm">Everyone plays the same 15-minute set. Protect your streak!</p>
             </div>
-            <button className="bg-gameNeon hover:bg-emerald-600 text-gameDark font-extrabold px-6 py-3 rounded-xl flex items-center space-x-2 transform active:scale-95 transition shadow-lg shadow-gameNeon/20">
+            <button 
+              onClick={() => setIsPlaying(true)} // Toggles state to launch Puzzle Arena
+              className="bg-gameNeon hover:bg-emerald-600 text-gameDark font-extrabold px-6 py-3 rounded-xl flex items-center space-x-2 transform active:scale-95 transition shadow-lg shadow-gameNeon/20"
+            >
               <FaPlay />
               <span>PLAY</span>
             </button>
@@ -70,14 +80,14 @@ function App() {
               <div>
                 <span className="text-xs font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded-md">PvP Mode</span>
                 <h2 className="text-xl font-bold mt-2 mb-1">Time-Attack Duel</h2>
-                <p className="text-slate-400 text-sm">Match head-to-head on a 10-minute set. Faster accurate solver wins[cite: 19, 20].</p>
+                <p className="text-slate-400 text-sm">Match head-to-head on a 10-minute set. Faster accurate solver wins.</p>
               </div>
               <span className="text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">LOCK</span>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Leaderboard Panel */}
+        {/* Right Column: Leaderboard */}
         <div className="bg-gameCard border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col">
           <div className="flex items-center space-x-2 text-lg font-bold border-b border-slate-800 pb-3 mb-4">
             <FaTrophy className="text-yellow-500" />
